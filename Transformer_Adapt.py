@@ -23,6 +23,7 @@ class TransformerClassifier(torch.nn.Module):
         self.classifier = torch.nn.Sequential(
             torch.nn.Linear(d_model, 128),
             torch.nn.ReLU(),
+            torch.nn.Dropout(0.1),
             torch.nn.Linear(128, num_classes)
         )
     def forward(self, x):
@@ -32,7 +33,7 @@ class TransformerClassifier(torch.nn.Module):
         return self.classifier(x)
 
 # 라벨 인덱스 맵(0=정상, 1=졸음 등은 학습 label2idx.json 기준으로 반드시 맞추세요)
-label2idx = {"정상": 0, "졸음": 1}  # 예시
+label2idx = {"Good": 0, "Drowsy": 1}  # 예시
 idx2label = {v: k for k, v in label2idx.items()}
 
 # 실제 학습 때 쓴 label2idx.json을 반드시 읽어서 맞춰야 합니다!
@@ -69,7 +70,8 @@ while True:
     img = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
     x = transform(img).unsqueeze(0).to(device)
     with torch.no_grad():
-        feat = cnn(x).squeeze().cpu().numpy()  # (512,)
+        feat = cnn(x)  # (1, 512, 1, 1)
+        feat = feat.view(-1).cpu().numpy()  # 정확히 (512,)
 
     frame_queue.append(feat)  # 슬라이딩 윈도우에 저장(최신 seq_len개 유지)
 
@@ -80,7 +82,12 @@ while True:
             out = model(seq_tensor)
             pred = out.argmax(dim=1).item()
         label = idx2label.get(pred, "Unknown")
-        cv2.putText(frame, f"예측: {label}", (30, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255), 2)
+    else:
+        label = "Waiting..."
+
+        # 텍스트 항상 표시
+    cv2.putText(frame, f"Predict: {label}", (30, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+    print(f"Predict: {label}")
 
     cv2.imshow("Drowsiness Detection", frame)
     if cv2.waitKey(1) & 0xFF == 27:  # ESC 종료
