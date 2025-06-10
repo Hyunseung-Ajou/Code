@@ -62,7 +62,8 @@ def pad_sequence(seq, max_len, feat_dim):
         seq = seq[:max_len]
     return seq
 
-def preprocess_all_data(all_data, cnn_model, transform, max_seq_len=25, device="cpu", label2idx=None, save_prefix=None):
+def preprocess_all_data(all_data, cnn_model, transform, max_seq_len=25, device="cpu",
+                        label2idx=None, save_prefix=None):
     X_list, y_list = [], []
     # 라벨 인코딩: train에선 자동 생성, val/test에선 전달받음
     if label2idx is None:
